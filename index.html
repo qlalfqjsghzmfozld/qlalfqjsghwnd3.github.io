@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도어락 지문 흔적 비밀번호 크래커</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔐 도어락 비밀번호 시뮬레이터</h1>
+      <p class="subtitle">지문 흔적 기반 경우의 수 계산 & 브루트포스 크래킹</p>
+    </header>
+
+    <main class="grid-layout">
+      <!-- 좌측: 도어락 키패드 및 입력 설정 -->
+      <section class="card config-section">
+        <h2>1. 도어락 지문 흔적 설정</h2>
+        <p class="guide-text">지문이 묻어 닳아있는 번호를 클릭하여 선택하세요.</p>
+
+        <!-- 도어락 키패드 UI -->
+        <div class="doorlock-keypad" id="keypad">
+          <button type="button" class="key-btn" data-val="1">1</button>
+          <button type="button" class="key-btn" data-val="2">2</button>
+          <button type="button" class="key-btn" data-val="3">3</button>
+          <button type="button" class="key-btn" data-val="4">4</button>
+          <button type="button" class="key-btn" data-val="5">5</button>
+          <button type="button" class="key-btn" data-val="6">6</button>
+          <button type="button" class="key-btn" data-val="7">7</button>
+          <button type="button" class="key-btn" data-val="8">8</button>
+          <button type="button" class="key-btn" data-val="9">9</button>
+          <button type="button" class="key-btn disabled" disabled>*</button>
+          <button type="button" class="key-btn" data-val="0">0</button>
+          <button type="button" class="key-btn disabled" disabled>#</button>
+        </div>
+
+        <div class="selected-badge-box">
+          <span>선택된 번호:</span>
+          <div id="worn-badges" class="badges"></div>
+        </div>
+
+        <hr />
+
+        <h2>2. 실제 정답 비밀번호 설정</h2>
+        <div class="input-group">
+          <label for="target-password">진짜 비밀번호 (4~12자리)</label>
+          <input 
+            type="text" 
+            id="target-password" 
+            placeholder="선택된 번호만 조합하여 입력" 
+            maxlength="12" 
+            autocomplete="off"
+          />
+        </div>
+        <div id="validation-msg" class="validation-msg"></div>
+
+        <button id="btn-start" class="btn btn-primary" disabled>
+          ▶ 크래킹 시뮬레이션 시작
+        </button>
+        <button id="btn-stop" class="btn btn-danger" style="display: none;">
+          ⏹ 탐색 중지
+        </button>
+      </section>
+
+      <!-- 우측: 분석 통계 및 실시간 크래킹 모니터 -->
+      <section class="card monitor-section">
+        <h2>📊 수학적 분석 & 진행 상황</h2>
+
+        <!-- 분석 요약 정보 -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">선택된 번호 수 (k)</span>
+            <span class="stat-value" id="stat-k">0개</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">유효 자릿수 범위</span>
+            <span class="stat-value" id="stat-len-range">-</span>
+          </div>
+          <div class="stat-card full-width">
+            <span class="stat-label">가능한 총 경우의 수 (포함-배제 원리)</span>
+            <span class="stat-value highlight" id="stat-total-cases">0 가지</span>
+          </div>
+        </div>
+
+        <!-- 디지털 디스플레이 창 -->
+        <div class="display-panel">
+          <div class="display-label">현재 시도 중인 비밀번호</div>
+          <div class="display-screen" id="current-candidate">READY</div>
+        </div>
+
+        <!-- 프로그레스 바 -->
+        <div class="progress-box">
+          <div class="progress-info">
+            <span>시도 횟수: <strong id="attempt-count">0</strong></span>
+            <span>진행률: <strong id="progress-percent">0.00%</strong></span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+          </div>
+          <div class="time-info">경과 시간: <span id="elapsed-time">0.00초</span></div>
+        </div>
+
+        <!-- 최종 결과 카드 -->
+        <div id="result-box" class="result-box" style="display: none;">
+          <h3>🎉 비밀번호 일치 성공!</h3>
+          <p>비밀번호: <strong id="result-pw" class="text-success"></strong></p>
+          <ul>
+            <li>사용한 시도 횟수: <span id="result-attempts"></span>회</li>
+            <li>총 가능한 경우의 수: <span id="result-total"></span>가지</li>
+            <li>전체 대비 탐색 비율: <span id="result-ratio"></span>%</li>
+            <li>소요 시간: <span id="result-time"></span>초</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
