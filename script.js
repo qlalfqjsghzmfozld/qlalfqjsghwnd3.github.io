@@ -1,475 +1,332 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+// 상태 변수
+let wornDigits = [];
+let isRunning = false;
+let stopRequested = false;
+let calculatedTotalCases = 0n;
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f1f5f9;
-  color: #1e293b;
-  min-height: 100vh;
-  padding: 32px 16px;
-  display: flex;
-  justify-content: center;
-}
+// DOM 엘리먼트
+const keypad = document.getElementById("keypad");
+const wornBadges = document.getElementById("worn-badges");
+const targetPwInput = document.getElementById("target-password");
+const validationMsg = document.getElementById("validation-msg");
+const btnStart = document.getElementById("btn-start");
+const btnStop = document.getElementById("btn-stop");
 
-.container {
-  width: 100%;
-  max-width: 1040px;
-}
+const statK = document.getElementById("stat-k");
+const statLenRange = document.getElementById("stat-len-range");
+const statTotalCases = document.getElementById("stat-total-cases");
+const statMaxTime = document.getElementById("stat-max-time");
 
-/* 헤더 영역 */
-header {
-  text-align: center;
-  margin-bottom: 28px;
-}
+const currentCandidateEl = document.getElementById("current-candidate");
+const attemptCountEl = document.getElementById("attempt-count");
+const progressPercentEl = document.getElementById("progress-percent");
+const progressBarEl = document.getElementById("progress-bar");
+const elapsedTimeEl = document.getElementById("elapsed-time");
+const resultBox = document.getElementById("result-box");
 
-.header-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  background-color: #e0f2fe;
-  color: #0284c7;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-header h1 {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 6px;
-}
-
-.subtitle {
-  color: #64748b;
-  font-size: 0.95rem;
-}
-
-/* 그리드 레이아웃 */
-.grid-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-@media (max-width: 820px) {
-  .grid-layout {
-    grid-template-columns: 1fr;
+// 1. 수학 계산: 조합(nCr) 및 포함-배제의 원리 (BigInt 정밀 연산)
+function combination(n, r) {
+  if (r < 0 || r > n) return 0n;
+  if (r === 0 || r === n) return 1n;
+  let num = 1n, den = 1n;
+  for (let i = 1n; i <= BigInt(r); i++) {
+    num *= (BigInt(n) - i + 1n);
+    den *= i;
   }
+  return num / den;
 }
 
-/* 카드 스타일 (화사한 화이트 테마) */
-.card {
-  background-color: #ffffff;
-  border-radius: 20px;
-  padding: 28px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
+function calculateValidPermutations(k, L) {
+  if (L < k) return 0n;
+  let sum = 0n;
+  for (let j = 0; j <= k; j++) {
+    const sign = (j % 2 === 0) ? 1n : -1n;
+    const comb = combination(k, j);
+    const power = BigInt(k - j) ** BigInt(L);
+    sum += sign * comb * power;
+  }
+  return sum;
 }
 
-.card h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 6px;
+// 닳아있는 번호 기반 총 경우의 수 계산 함수 (시작 버튼 클릭 시 호출)
+function computeTotalPossibleCases(k) {
+  const minLen = Math.max(4, k);
+  const maxLen = 12;
+  let total = 0n;
+
+  for (let L = minLen; L <= maxLen; L++) {
+    total += calculateValidPermutations(k, L);
+  }
+  return total;
 }
 
-.guide-text {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-bottom: 20px;
+// [핵심 추가] 초당 10,000회 입력 기준 시간 포맷팅 함수 (BigInt 정밀 계산)
+function formatDurationFromAttempts(attemptsBigInt) {
+  if (attemptsBigInt === 0n) return "0초";
+
+  const OPS_PER_SEC = 10000n; // 초당 10,000회 기준
+  const totalSecondsBig = attemptsBigInt / OPS_PER_SEC;
+  const remainderAttempts = attemptsBigInt % OPS_PER_SEC;
+
+  // 1초 미만인 경우
+  if (totalSecondsBig === 0n) {
+    const fraction = Number(remainderAttempts) / 10000;
+    if (fraction < 0.001) return "약 0.001초 미만 (순식간)";
+    return `약 ${fraction.toFixed(3)}초`;
+  }
+
+  // 1초 이상 60초 미만인 경우
+  if (totalSecondsBig < 60n) {
+    const fraction = Number(totalSecondsBig) + (Number(remainderAttempts) / 10000);
+    return `약 ${fraction.toFixed(2)}초`;
+  }
+
+  // 60초 이상: 분, 시간, 일, 년 단위 변환
+  let s = totalSecondsBig;
+  const days = s / 86400n;
+  s %= 86400n;
+  const hours = s / 3600n;
+  s %= 3600n;
+  const minutes = s / 60n;
+  const seconds = s % 60n;
+
+  if (days >= 365n) {
+    const years = days / 365n;
+    const remDays = days % 365n;
+    return `약 ${years.toLocaleString()}년 ${remDays}일 ${hours}시간`;
+  }
+  if (days > 0n) {
+    return `약 ${days}일 ${hours}시간 ${minutes}분 ${seconds}초`;
+  }
+  if (hours > 0n) {
+    return `약 ${hours}시간 ${minutes}분 ${seconds}초`;
+  }
+  return `약 ${minutes}분 ${seconds}초`;
 }
 
-/* 도어락 키패드 */
-.doorlock-keypad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  max-width: 250px;
-  margin: 0 auto 20px;
+// 2. 키패드 클릭 이벤트 (닳은 번호 선택)
+keypad.addEventListener("click", (e) => {
+  if (isRunning) return; // 실행 중에는 변경 불가
+
+  const btn = e.target.closest(".key-btn");
+  if (!btn || btn.classList.contains("disabled")) return;
+
+  const val = btn.dataset.val;
+  if (wornDigits.includes(val)) {
+    wornDigits = wornDigits.filter((d) => d !== val);
+    btn.classList.remove("selected");
+  } else {
+    wornDigits.push(val);
+    wornDigits.sort();
+    btn.classList.add("selected");
+  }
+
+  renderBadges();
+  updateUIOnConfigChange();
+});
+
+function renderBadges() {
+  if (wornDigits.length === 0) {
+    wornBadges.innerHTML = `<span class="placeholder-text">번호를 선택하세요</span>`;
+    return;
+  }
+  wornBadges.innerHTML = wornDigits
+    .map((d) => `<span class="badge">${d}</span>`)
+    .join("");
 }
 
-.key-btn {
-  aspect-ratio: 1;
-  background-color: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  color: #334155;
-  font-size: 1.45rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.18s ease-in-out;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
+// 번호 선택 변경 시 기본 정보 갱신 (총 경우의 수 및 소요 시간은 시작 버튼 누를 때 계산)
+function updateUIOnConfigChange() {
+  const k = wornDigits.length;
+  statK.textContent = `${k}개`;
+
+  if (k === 0) {
+    statLenRange.textContent = "-";
+  } else if (k > 12) {
+    statLenRange.textContent = "불가능 (12개 초과)";
+  } else {
+    const minLen = Math.max(4, k);
+    statLenRange.textContent = `${minLen}자리 ~ 12자리`;
+  }
+
+  // 시작 버튼을 누르기 전까지는 대기 문구 표시
+  statTotalCases.textContent = "시작 버튼을 누르면 계산됩니다";
+  statMaxTime.textContent = "-";
+  calculatedTotalCases = 0n;
+
+  validateInputs();
 }
 
-.key-btn:hover:not(.disabled) {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+// 3. 비밀번호 유효성 검사
+targetPwInput.addEventListener("input", validateInputs);
+
+function validateInputs() {
+  const pw = targetPwInput.value.trim();
+  const k = wornDigits.length;
+  let isValid = false;
+
+  if (k === 0) {
+    showValidation("먼저 닳아있는 번호를 1개 이상 선택해 주세요.", false);
+  } else if (k > 12) {
+    showValidation("닳아있는 번호는 최대 12개까지만 가능합니다.", false);
+  } else if (!pw) {
+    showValidation("테스트할 진짜 비밀번호를 입력해 주세요.", false);
+  } else if (!/^\d+$/.test(pw)) {
+    showValidation("비밀번호는 숫자만 입력 가능합니다.", false);
+  } else if (pw.length < Math.max(4, k) || pw.length > 12) {
+    showValidation(`비밀번호 길이는 ${Math.max(4, k)}자리 이상 12자리 이하여야 합니다.`, false);
+  } else {
+    const pwDigits = new Set(pw.split(""));
+    const wornSet = new Set(wornDigits);
+
+    const hasExtra = [...pwDigits].some((d) => !wornSet.has(d));
+    const hasMissing = [...wornSet].some((d) => !pwDigits.has(d));
+
+    if (hasExtra) {
+      showValidation("닳아있지 않은 숫자가 비밀번호에 포함되어 있습니다.", false);
+    } else if (hasMissing) {
+      showValidation("닳아있는 모든 숫자가 적어도 1번 이상 사용되어야 합니다.", false);
+    } else {
+      showValidation("유효한 비밀번호입니다. [시작] 버튼을 눌러주세요!", true);
+      isValid = true;
+    }
+  }
+
+  btnStart.disabled = !isValid || isRunning;
+  return isValid;
 }
 
-.key-btn.selected {
-  background-color: #2563eb;
-  border-color: #1d4ed8;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+function showValidation(msg, isSuccess) {
+  validationMsg.textContent = msg;
+  validationMsg.className = `validation-msg ${isSuccess ? "success" : "error"}`;
 }
 
-.key-btn.selected::after {
-  content: "🐾";
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 0.75rem;
-}
+// 4. 비동기 브루트포스 시뮬레이터 (시작 버튼을 누르면 총 경우의 수 및 소요 시간 계산 후 탐색)
+btnStart.addEventListener("click", startCracking);
+btnStop.addEventListener("click", () => { stopRequested = true; });
 
-.key-btn.disabled {
-  background-color: #f1f5f9;
-  border-color: #f1f5f9;
-  color: #cbd5e1;
-  cursor: not-allowed;
-}
+async function startCracking() {
+  if (!validateInputs()) return;
 
-/* 선택된 번호 배지 */
-.selected-badge-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding: 10px 14px;
-  background-color: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-}
+  const targetPw = targetPwInput.value.trim();
+  const k = wornDigits.length;
+  const minLen = Math.max(4, k);
+  const maxLen = 12;
 
-.badge-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #475569;
-  white-space: nowrap;
-}
+  // [1] 시작 버튼을 눌렀을 때 가능한 총 경우의 수 계산
+  statTotalCases.textContent = "계산 중...";
+  statMaxTime.textContent = "계산 중...";
+  await new Promise((r) => setTimeout(r, 60)); // 체감 UI 갱신
 
-.badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+  calculatedTotalCases = computeTotalPossibleCases(k);
+  statTotalCases.textContent = `${calculatedTotalCases.toLocaleString()} 가지`;
 
-.badge {
-  background-color: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 0.9rem;
-}
+  // [2] 초당 1만회 기준 최대 소요 시간 표시 (전체 경우의 수 기준)
+  const maxTimeFormatted = formatDurationFromAttempts(calculatedTotalCases);
+  statMaxTime.textContent = maxTimeFormatted;
 
-.placeholder-text {
-  font-size: 0.85rem;
-  color: #94a3b8;
-}
+  // UI 상태 변경
+  isRunning = true;
+  stopRequested = false;
+  btnStart.style.display = "none";
+  btnStop.style.display = "block";
+  resultBox.style.display = "none";
+  targetPwInput.disabled = true;
 
-hr {
-  border: 0;
-  height: 1px;
-  background-color: #e2e8f0;
-  margin: 22px 0;
-}
+  const startTime = performance.now();
+  let attempts = 0n;
+  let matched = false;
 
-/* 입력 필드 */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
-}
+  const totalCasesNum = Number(calculatedTotalCases);
+  let lastCandidateStr = "";
 
-.input-group label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #334155;
-}
+  // 자리수 순차 탐색 (minLen -> maxLen)
+  for (let L = minLen; L <= maxLen; L++) {
+    if (stopRequested || matched) break;
 
-.input-group input {
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1.5px solid #cbd5e1;
-  background-color: #ffffff;
-  color: #0f172a;
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: 2px;
-  transition: all 0.2s;
-}
+    const indices = new Array(L).fill(0);
+    let hasMore = true;
 
-.input-group input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-}
+    while (hasMore && !stopRequested && !matched) {
+      const CHUNK_SIZE = 5000; // 한 틱(배치)에 처리할 연산량
 
-.validation-msg {
-  font-size: 0.85rem;
-  min-height: 22px;
-  margin-bottom: 18px;
-  font-weight: 500;
-}
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        let candidate = "";
+        let countMask = 0;
 
-.validation-msg.error {
-  color: #dc2626;
-}
+        for (let j = 0; j < L; j++) {
+          const idx = indices[j];
+          candidate += wornDigits[idx];
+          countMask |= (1 << idx);
+        }
 
-.validation-msg.success {
-  color: #059669;
-}
+        // 모든 닳아있는 숫자가 적어도 1회 이상 포함되었는지 비트마스크로 검사
+        if (countMask === (1 << k) - 1) {
+          attempts++;
+          lastCandidateStr = candidate;
 
-/* 버튼 */
-.button-group {
-  margin-top: 4px;
-}
+          if (candidate === targetPw) {
+            matched = true;
+            break;
+          }
+        }
 
-.btn {
-  width: 100%;
-  padding: 15px;
-  border-radius: 12px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
+        // 다음 중복 순열 계산
+        let pos = L - 1;
+        while (pos >= 0) {
+          indices[pos]++;
+          if (indices[pos] < k) break;
+          indices[pos] = 0;
+          pos--;
+        }
+        if (pos < 0) {
+          hasMore = false;
+          break;
+        }
+      }
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
+      // 화면 업데이트
+      const currentElapsed = (performance.now() - startTime) / 1000;
+      attemptCountEl.textContent = attempts.toLocaleString();
+      elapsedTimeEl.textContent = `${currentElapsed.toFixed(2)}초`;
+      currentCandidateEl.textContent = lastCandidateStr || "SEARCHING...";
 
-.btn-primary {
-  background-color: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
-}
+      if (totalCasesNum > 0) {
+        const percent = Math.min(100, (Number(attempts) / totalCasesNum) * 100);
+        progressPercentEl.textContent = `${percent.toFixed(2)}%`;
+        progressBarEl.style.width = `${percent}%`;
+      }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
-}
+      // 브라우저 렌더링 프레임 확보
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
 
-.btn-danger {
-  background-color: #ef4444;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
-}
+  const finalElapsed = (performance.now() - startTime) / 1000;
 
-.btn-danger:hover {
-  background-color: #dc2626;
-}
+  // 종료 및 복구 처리
+  isRunning = false;
+  btnStart.style.display = "block";
+  btnStop.style.display = "none";
+  btnStart.disabled = false;
+  targetPwInput.disabled = false;
 
-/* 우측 분석 & 모니터 섹션 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
+  if (matched) {
+    currentCandidateEl.textContent = targetPw;
+    resultBox.style.display = "block";
+    document.getElementById("result-pw").textContent = targetPw;
+    document.getElementById("result-attempts").textContent = attempts.toLocaleString();
+    document.getElementById("result-total").textContent = calculatedTotalCases.toLocaleString();
 
-.stat-card {
-  background-color: #f8fafc;
-  padding: 14px 18px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
+    const ratio = totalCasesNum > 0 ? ((Number(attempts) / totalCasesNum) * 100).toFixed(4) : "0";
+    document.getElementById("result-ratio").textContent = ratio;
+    document.getElementById("result-time").textContent = finalElapsed.toFixed(3);
 
-.stat-card.full-width {
-  grid-column: span 2;
-  background-color: #eff6ff;
-  border-color: #bfdbfe;
-}
-
-/* 시간 통계 카드 (노란빛 하이라이트) */
-.stat-card.time-stat-card {
-  background-color: #fefce8;
-  border-color: #fef08a;
-}
-
-.stat-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.stat-value.highlight {
-  font-size: 1.25rem;
-  color: #1d4ed8;
-}
-
-.stat-value.text-accent,
-.text-accent {
-  color: #b45309;
-  font-weight: 800;
-}
-
-/* 디지털 화면 */
-.display-panel {
-  background: #0f172a;
-  border: 2px solid #334155;
-  border-radius: 16px;
-  padding: 18px 20px;
-  text-align: center;
-  margin-bottom: 20px;
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
-}
-
-.display-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-
-.display-screen {
-  font-family: "Courier New", Courier, monospace;
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #38bdf8;
-  letter-spacing: 6px;
-  text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 프로그레스 바 */
-.progress-box {
-  margin-bottom: 20px;
-}
-
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 8px;
-}
-
-.text-blue {
-  color: #2563eb;
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 10px;
-  background-color: #e2e8f0;
-  border-radius: 9999px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.progress-bar-fill {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, #2563eb, #10b981);
-  transition: width 0.1s linear;
-}
-
-.time-info {
-  font-size: 0.85rem;
-  color: #64748b;
-  text-align: right;
-  font-weight: 500;
-}
-
-/* 결과 창 */
-.result-box {
-  background-color: #f0fdf4;
-  border: 1.5px solid #86efac;
-  padding: 20px;
-  border-radius: 14px;
-  margin-top: 10px;
-}
-
-.result-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.result-header h3 {
-  color: #15803d;
-  font-size: 1.15rem;
-  font-weight: 700;
-}
-
-.result-pw-display {
-  font-size: 1.05rem;
-  color: #1e293b;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-
-.text-success {
-  color: #16a34a;
-  font-size: 1.45rem;
-  letter-spacing: 2px;
-}
-
-.result-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background-color: #ffffff;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid #dcfce7;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #334155;
-}
-
-.detail-row.highlight-row {
-  background-color: #fefce8;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #fef08a;
-  font-weight: 600;
-}
-
-.detail-row strong {
-  color: #0f172a;
+    // [3] 초당 1만회 기준 소요 시간 산출 결과 출력
+    const theoreticalTime = formatDurationFromAttempts(attempts);
+    document.getElementById("result-theoretical-time").textContent = theoreticalTime;
+    document.getElementById("result-max-time").textContent = maxTimeFormatted;
+  } else if (stopRequested) {
+    currentCandidateEl.textContent = "STOPPED";
+  }
 }
