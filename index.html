@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>스마트 도어락 비밀번호 크래커</title>
+  <title>스마트 도어락 비밀번호 크래커 (AI 고속 분석)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="header-badge">Smart Security Simulator</div>
+      <div class="header-badge">AI Combinatorial Security Analyzer</div>
       <h1>🔐 도어락 비밀번호 크래커</h1>
-      <p class="subtitle">지문 흔적 분석 기반 경우의 수 계산 & 브루트포스 탐색 시뮬레이션</p>
+      <p class="subtitle">지문 흔적 분석 기반 경우의 수 수학적 계산 & 초당 10,000회 타건 시뮬레이션</p>
     </header>
 
     <main class="grid-layout">
@@ -60,17 +60,14 @@
 
         <div class="button-group">
           <button id="btn-start" class="btn btn-primary" disabled>
-            ▶ 크래킹 시뮬레이션 시작
-          </button>
-          <button id="btn-stop" class="btn btn-danger" style="display: none;">
-            ⏹ 탐색 중지
+            ⚡ AI 비밀번호 해독 및 시간 분석
           </button>
         </div>
       </section>
 
       <!-- 우측: 분석 통계 및 실시간 모니터링 -->
       <section class="card monitor-section">
-        <h2>📊 시뮬레이션 & 경우의 수 분석</h2>
+        <h2>📊 AI 경우의 수 분석 & 해제 시간</h2>
 
         <!-- 분석 요약 정보 -->
         <div class="stats-grid">
@@ -84,65 +81,53 @@
           </div>
           <div class="stat-card full-width">
             <span class="stat-label">가능한 총 경우의 수 (포함-배제의 원리)</span>
-            <span class="stat-value highlight" id="stat-total-cases">시작 버튼을 누르면 계산됩니다</span>
+            <span class="stat-value highlight" id="stat-total-cases">분석 버튼을 누르면 계산됩니다</span>
           </div>
           <div class="stat-card full-width time-stat-card">
-            <span class="stat-label">⚡ 초당 10,000회 시도 시 최대 소요 시간 (전체 경우의 수)</span>
+            <span class="stat-label">⚡ 초당 10,000회 입력 기준 최대 소요 시간 (전체 탐색 시)</span>
             <span class="stat-value text-accent" id="stat-max-time">-</span>
           </div>
         </div>
 
         <!-- 디지털 디스플레이 패널 -->
         <div class="display-panel">
-          <div class="display-label">현재 시도 중인 비밀번호</div>
+          <div class="display-label">AI 디코딩 디스플레이</div>
           <div class="display-screen" id="current-candidate">READY</div>
         </div>
 
-        <!-- 실시간 프로그레스 -->
-        <div class="progress-box">
-          <div class="progress-info">
-            <span>시도 횟수: <strong id="attempt-count" class="text-blue">0</strong></span>
-            <span>진행률: <strong id="progress-percent" class="text-blue">0.00%</strong></span>
-          </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="progress-bar"></div>
-          </div>
-          <div class="time-info">시뮬레이터 경과 시간: <span id="elapsed-time">0.00초</span></div>
-        </div>
-
-        <!-- 최종 결과 카드 -->
+        <!-- 최종 분석 결과 카드 -->
         <div id="result-box" class="result-box" style="display: none;">
           <div class="result-header">
-            <span class="success-icon">✅</span>
-            <h3>비밀번호를 성공적으로 찾았습니다!</h3>
+            <span class="success-icon">🎯</span>
+            <h3>비밀번호 분석 및 해독 완료!</h3>
           </div>
           <div class="result-pw-display">
-            찾은 비밀번호: <strong id="result-pw" class="text-success"></strong>
+            해독된 비밀번호: <strong id="result-pw" class="text-success"></strong>
           </div>
           <div class="result-details">
+            <div class="detail-row highlight-row">
+              <span class="highlight-title">⏱️ 초당 1만회 입력 시 비밀번호 해제 시간:</span>
+              <strong id="result-theoretical-time" class="time-main"></strong>
+            </div>
             <div class="detail-row">
-              <span>사용한 경우의 수 (시도 횟수):</span>
-              <strong id="result-attempts"></strong>회
+              <span>사용한 경우의 수 (비밀번호 순번):</span>
+              <strong id="result-attempts"></strong>번째
             </div>
             <div class="detail-row">
               <span>가능한 총 경우의 수:</span>
               <strong id="result-total"></strong>가지
             </div>
             <div class="detail-row">
-              <span>전체 대비 탐색 비율:</span>
+              <span>전체 경우 중 탐색된 위치 (백분율):</span>
               <strong id="result-ratio"></strong>%
             </div>
-            <div class="detail-row highlight-row">
-              <span>⚡ 초당 1만회 시 비밀번호 해제 소요 시간:</span>
-              <strong id="result-theoretical-time" class="text-accent"></strong>
-            </div>
             <div class="detail-row">
-              <span>⚡ 초당 1만회 시 전체 탐색 최대 시간:</span>
+              <span>전체 탐색 시 최대 소요 시간 (최악의 경우):</span>
               <strong id="result-max-time"></strong>
             </div>
             <div class="detail-row">
-              <span>브라우저 시뮬레이션 실제 소요 시간:</span>
-              <strong id="result-time"></strong>초
+              <span>평균 예상 소요 시간 (50% 지점):</span>
+              <strong id="result-avg-time"></strong>
             </div>
           </div>
         </div>
