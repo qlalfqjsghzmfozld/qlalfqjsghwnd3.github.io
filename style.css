@@ -304,6 +304,12 @@ hr {
   border-color: #bfdbfe;
 }
 
+/* 시간 통계 카드 (노란빛 하이라이트) */
+.stat-card.time-stat-card {
+  background-color: #fefce8;
+  border-color: #fef08a;
+}
+
 .stat-label {
   display: block;
   font-size: 0.8rem;
@@ -323,7 +329,13 @@ hr {
   color: #1d4ed8;
 }
 
-/* 디지털 화면 (하이테크 도어락 OLED 느낌) */
+.stat-value.text-accent,
+.text-accent {
+  color: #b45309;
+  font-weight: 800;
+}
+
+/* 디지털 화면 */
 .display-panel {
   background: #0f172a;
   border: 2px solid #334155;
@@ -445,8 +457,17 @@ hr {
 .detail-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 0.9rem;
   color: #334155;
+}
+
+.detail-row.highlight-row {
+  background-color: #fefce8;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #fef08a;
+  font-weight: 600;
 }
 
 .detail-row strong {
