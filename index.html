@@ -86,6 +86,10 @@
             <span class="stat-label">가능한 총 경우의 수 (포함-배제의 원리)</span>
             <span class="stat-value highlight" id="stat-total-cases">시작 버튼을 누르면 계산됩니다</span>
           </div>
+          <div class="stat-card full-width time-stat-card">
+            <span class="stat-label">⚡ 초당 10,000회 시도 시 최대 소요 시간 (전체 경우의 수)</span>
+            <span class="stat-value text-accent" id="stat-max-time">-</span>
+          </div>
         </div>
 
         <!-- 디지털 디스플레이 패널 -->
@@ -103,7 +107,7 @@
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" id="progress-bar"></div>
           </div>
-          <div class="time-info">경과 시간: <span id="elapsed-time">0.00초</span></div>
+          <div class="time-info">시뮬레이터 경과 시간: <span id="elapsed-time">0.00초</span></div>
         </div>
 
         <!-- 최종 결과 카드 -->
@@ -128,8 +132,16 @@
               <span>전체 대비 탐색 비율:</span>
               <strong id="result-ratio"></strong>%
             </div>
+            <div class="detail-row highlight-row">
+              <span>⚡ 초당 1만회 시 비밀번호 해제 소요 시간:</span>
+              <strong id="result-theoretical-time" class="text-accent"></strong>
+            </div>
             <div class="detail-row">
-              <span>총 소요 시간:</span>
+              <span>⚡ 초당 1만회 시 전체 탐색 최대 시간:</span>
+              <strong id="result-max-time"></strong>
+            </div>
+            <div class="detail-row">
+              <span>브라우저 시뮬레이션 실제 소요 시간:</span>
               <strong id="result-time"></strong>초
             </div>
           </div>
